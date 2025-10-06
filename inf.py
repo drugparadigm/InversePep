@@ -50,6 +50,7 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 set_seed(42)
 
 
@@ -152,7 +153,7 @@ def calculate_tm_score(generated_pdb_content, original_pdb_path, temp_dir="/tmp"
 
 
 @torch.no_grad()
-def vpsde_inference(config, pdb_file='original_pdbs/1lmw_A_peptide'):
+def vpsde_inference(config, pdb_file):
     pdb_id = os.path.splitext(os.path.basename(pdb_file))[0]
 
     # === Model init / load ===
