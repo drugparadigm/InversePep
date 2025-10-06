@@ -6,12 +6,16 @@ _Diffusion-Driven Structure-Based Inverse Folding for Functional Peptides._
 
 ## Installation
 
-Please refer to requirements.txt for the required packages.
+Run the following command to install the required packages:
+
+```python
+pip install -r requirements.txt
+```
 
 ## Usage
 
 Run the following command to run the example for sequence generation:
 
 ```python
-python run_lib.py --save_folder outputs/2KYT_run --pdb_file example/1DTC.pdb
+python inf.py --pdb_file example/1DTC.pdb
 ```
