@@ -9,7 +9,7 @@ _Diffusion-Driven Structure-Based Inverse Folding for Functional Peptides._
 Run the following command to create the conda environment
 
 ```python
-conda env create -f environment.yml
+conda env create -f environment.yaml
 ```
 
 Run the following command to activate the conda environment
