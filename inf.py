@@ -25,7 +25,30 @@ from config import get_config
 from peptide_preprocessing_enhanced import peptide2data_enhanced as peptide2data
 from peptide_preprocessing_enhanced import INDEX_TO_AA
 import torch.nn.functional as F
+import torch
+from transformers.models.esm.openfold_utils.protein import to_pdb, Protein as OFProtein
+from transformers.models.esm.openfold_utils.feats import atom14_to_atom37
 
+# ---------- Lazy loading for ESMFold -------------
+_esmfold_singleton = {"esm_model": None, "tokenizer": None, "device": None}
+
+def get_esmfold():
+    if _esmfold_singleton["esm_model"] is None:
+        from transformers import AutoTokenizer, EsmForProteinFolding
+        from accelerate.test_utils.testing import get_backend
+
+        DEVICE, _, _ = get_backend()
+        tokenizer = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
+        esm_model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1")
+        esm_model = esm_model.to(DEVICE)
+
+        _esmfold_singleton["esm_model"] = esm_model
+        _esmfold_singleton["tokenizer"] = tokenizer
+        _esmfold_singleton["device"] = DEVICE
+
+        print(f"Model loaded on {DEVICE}")
+    
+    return _esmfold_singleton["esm_model"], _esmfold_singleton["tokenizer"], _esmfold_singleton["device"]
 
 def get_optimizer(config, params):
     if config.optim.optimizer == 'Adam':
@@ -53,45 +76,56 @@ def set_seed(seed):
 
 set_seed(42)
 
+def convert_outputs_to_pdb(outputs):
+    final_atom_positions = atom14_to_atom37(outputs["positions"][-1], outputs)
+    outputs = {k: v.to("cpu").numpy() for k, v in outputs.items()}
+    final_atom_positions = final_atom_positions.cpu().numpy()
+    final_atom_mask = outputs["atom37_atom_exists"]
+    
+    pdbs = []
+    for i in range(outputs["aatype"].shape[0]):
+        aa = outputs["aatype"][i]
+        pred_pos = final_atom_positions[i]
+        mask = final_atom_mask[i]
+        resid = outputs["residue_index"][i] + 1
+        pred = OFProtein(
+            aatype=aa,
+            atom_positions=pred_pos,
+            atom_mask=mask,
+            residue_index=resid,
+            b_factors=outputs["plddt"][i],
+            chain_index=outputs["chain_index"][i] if "chain_index" in outputs else None,
+        )
+        pdbs.append(to_pdb(pred))
+    return pdbs
 
-def fold_sequence_with_esmfold(sequence, max_retries=3, delay=2):
+def fold_sequence_with_esmfold(sequence: str, save_path: str = None):
     """
-    Fold a protein sequence using ESM Atlas API
+    Fold a single protein sequence locally using ESMFold (Hugging Face).
+    
+    Args:
+        sequence (str): Amino acid sequence.
+        save_path (str, optional): Path to save the PDB. If None, it won't save.
+    
+    Returns:
+        List[str]: List of PDB strings (usually length 1 for a single sequence).
     """
-    ESM_API_URL = "https://api.esmatlas.com/foldSequence/v1/pdb/"
+    esm_model, tokenizer, DEVICE = get_esmfold()  # lazy load on first call
+
+    tokenized_input = tokenizer([sequence], return_tensors="pt", add_special_tokens=False)['input_ids']
+    tokenized_input = tokenized_input.to(DEVICE)
     
-    for attempt in range(max_retries):
-        try:
-            print(f"      Folding attempt {attempt + 1}/{max_retries}...", end="")
-            
-            response = requests.post(
-                ESM_API_URL,
-                data=sequence,
-                headers={'Content-Type': 'text/plain'},
-                timeout=60
-            )
-            
-            if response.status_code == 200:
-                print(" ✓")
-                return response.text
-            elif response.status_code == 429:
-                print(f" Rate limited, waiting {delay * (attempt + 1)}s...")
-                time.sleep(delay * (attempt + 1))
-            else:
-                print(f" API error: {response.status_code}")
-                if attempt < max_retries - 1:
-                    time.sleep(delay)
-                    
-        except requests.exceptions.Timeout:
-            print(f" Timeout")
-        except requests.exceptions.RequestException as e:
-            print(f" Request failed: {e}")
-            
-        if attempt < max_retries - 1:
-            time.sleep(delay)
+    esm_model.eval()
+    with torch.no_grad():
+        outputs = esm_model(tokenized_input)
     
-    print(" ✗ Failed")
-    return None
+    pdbs = convert_outputs_to_pdb(outputs)
+    
+    if save_path:
+        with open(save_path, "w") as f:
+            f.write("".join(pdbs))
+    
+    return pdbs
 
 
 def calculate_tm_score(generated_pdb_content, original_pdb_path, temp_dir="/tmp"):
@@ -116,7 +150,8 @@ def calculate_tm_score(generated_pdb_content, original_pdb_path, temp_dir="/tmp"
             timeout=120,
             env=env
         )
-        
+
+        print(command.stderr)
         # Clean up temp file
         if os.path.exists(temp_pdb):
             os.remove(temp_pdb)
@@ -162,7 +197,9 @@ def vpsde_inference(config, pdb_file):
     optimizer = get_optimizer(config, model.parameters())
     state = {'optimizer': optimizer, 'model': model, 'ema': ema, 'step': 0}
 
-    ckpt = './ckpts/best_model.pth'
+    # ckpt = './ckpts/best_model.pth'
+    # ckpt = './ckpts/ablasation_study_1.pth'
+    ckpt = './ckpts/ablation_study_2.pth'
     loaded = torch.load(ckpt, map_location=config.device)
     ema.load_state_dict(loaded['ema'])
     ema.copy_to(model.parameters())
@@ -198,7 +235,7 @@ def vpsde_inference(config, pdb_file):
     # === Inference ===
     print(f"📋 Generating {config.eval.n_samples} sequences...")
     start = time.time()
-    samples_indices, samples_logits = sampling_fn(model, struct_data)
+    samples_indices = sampling_fn(model, struct_data)
     print(f"✅ Done in {time.time() - start:.2f}s")
 
     # === Process sequences ===
@@ -222,14 +259,9 @@ def vpsde_inference(config, pdb_file):
 def complete_pipeline_display_only(pdb_file, config):
     """
     Complete pipeline with terminal display only (no file saving)
-    """
-    print("="*70)
-    print("🧬 COMPLETE SINGLE PDB INFERENCE PIPELINE")
-    print("="*70)
-    
+    """    
     # Step 1: Generate sequences
     print("\n📋 STEP 1: SEQUENCE GENERATION")
-    print("-" * 50)
     result = vpsde_inference(config, pdb_file)
     
     pdb_id = result['pdb_id']
@@ -238,19 +270,16 @@ def complete_pipeline_display_only(pdb_file, config):
     original_pdb_path = result['original_pdb_path']
     
     # Step 2: Fold sequences and calculate TM-scores
-    print(f"\n🧪 STEP 2: FOLDING & TM-SCORE CALCULATION")
-    print("-" * 50)
-    
+    print(f"\n🧪 STEP 2: FOLDING & TM-SCORE CALCULATION")    
     results_data = []
     
     for i, sequence in enumerate(generated_sequences):
         print(f"\n  Sequence {i+1}/{len(generated_sequences)}: {sequence[:30]}... (len: {len(sequence)})")
         
         # Fold with ESMFold
-        pdb_content = fold_sequence_with_esmfold(sequence)
-        
+        pdb_content_list = fold_sequence_with_esmfold(sequence)
+        pdb_content = "".join(pdb_content_list)  # <- convert list to single string
         if pdb_content:
-            print(f"      Calculating TM-score...", end="")
             tm_score = calculate_tm_score(pdb_content, original_pdb_path)
             
             if tm_score is not None:
@@ -274,7 +303,6 @@ def complete_pipeline_display_only(pdb_file, config):
     
     # Step 3: Rank and display results
     print(f"\n🏆 STEP 3: FINAL RANKINGS")
-    print("-" * 50)
     
     # Sort by TM-score (descending)
     results_data.sort(key=lambda x: x['tm_score'], reverse=True)
@@ -328,6 +356,6 @@ if __name__ == "__main__":
     
     config = get_config()
     config.eval.n_samples = 10
-    
+
     # Run complete pipeline (display only)
     complete_pipeline_display_only(args.pdb_file, config)
