@@ -18,7 +18,7 @@ Run the following command to activate the conda environment
 conda activate inversepep
 ```
 
-Instaling Additional Softwares
+Installing Additional Softwares
 
 Make the script executable (only needed once, Linux/Mac)
 
