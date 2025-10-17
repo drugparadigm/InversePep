@@ -197,9 +197,7 @@ def vpsde_inference(config, pdb_file):
     optimizer = get_optimizer(config, model.parameters())
     state = {'optimizer': optimizer, 'model': model, 'ema': ema, 'step': 0}
 
-    # ckpt = './ckpts/best_model.pth'
-    # ckpt = './ckpts/ablasation_study_1.pth'
-    ckpt = './ckpts/ablation_study_2.pth'
+    ckpt = './ckpts/best_model.pth'
     loaded = torch.load(ckpt, map_location=config.device)
     ema.load_state_dict(loaded['ema'])
     ema.copy_to(model.parameters())
