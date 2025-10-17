@@ -6,11 +6,32 @@ _Diffusion-Driven Structure-Based Inverse Folding for Functional Peptides._
 
 ## Installation
 
-Run the following command to install the required packages:
+Run the following command to create the conda environment
 
 ```python
-pip install -r requirements.txt
+conda env create -f environment.yml
 ```
+
+Run the following command to activate the conda environment
+
+```python
+conda activate inversepep
+```
+
+Instaling Additional Softwares
+
+Make the script executable (only needed once, Linux/Mac)
+
+```python
+chmod +x additional_software.sh
+```
+
+Run the installation script
+
+```python
+./additional_software.sh
+```
+
 
 ## Usage
 
