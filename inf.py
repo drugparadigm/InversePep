@@ -29,7 +29,6 @@ import torch
 from transformers.models.esm.openfold_utils.protein import to_pdb, Protein as OFProtein
 from transformers.models.esm.openfold_utils.feats import atom14_to_atom37
 
-# ---------- Lazy loading for ESMFold -------------
 _esmfold_singleton = {"esm_model": None, "tokenizer": None, "device": None}
 
 def get_esmfold():
@@ -110,7 +109,7 @@ def fold_sequence_with_esmfold(sequence: str, save_path: str = None):
     Returns:
         List[str]: List of PDB strings (usually length 1 for a single sequence).
     """
-    esm_model, tokenizer, DEVICE = get_esmfold()  # lazy load on first call
+    esm_model, tokenizer, DEVICE = get_esmfold() 
 
     tokenized_input = tokenizer([sequence], return_tensors="pt", add_special_tokens=False)['input_ids']
     tokenized_input = tokenized_input.to(DEVICE)
@@ -234,7 +233,7 @@ def vpsde_inference(config, pdb_file):
     print(f"📋 Generating {config.eval.n_samples} sequences...")
     start = time.time()
     samples_indices = sampling_fn(model, struct_data)
-    print(f"✅ Done in {time.time() - start:.2f}s")
+    print(f"Done in {time.time() - start:.2f}s")
 
     # === Process sequences ===
     generated_sequences = []
@@ -259,7 +258,7 @@ def complete_pipeline_display_only(pdb_file, config):
     Complete pipeline with terminal display only (no file saving)
     """    
     # Step 1: Generate sequences
-    print("\n📋 STEP 1: SEQUENCE GENERATION")
+    print("\nSTEP 1: SEQUENCE GENERATION")
     result = vpsde_inference(config, pdb_file)
     
     pdb_id = result['pdb_id']
@@ -268,7 +267,7 @@ def complete_pipeline_display_only(pdb_file, config):
     original_pdb_path = result['original_pdb_path']
     
     # Step 2: Fold sequences and calculate TM-scores
-    print(f"\n🧪 STEP 2: FOLDING & TM-SCORE CALCULATION")    
+    print(f"\nSTEP 2: FOLDING & TM-SCORE CALCULATION")    
     results_data = []
     
     for i, sequence in enumerate(generated_sequences):
@@ -276,7 +275,7 @@ def complete_pipeline_display_only(pdb_file, config):
         
         # Fold with ESMFold
         pdb_content_list = fold_sequence_with_esmfold(sequence)
-        pdb_content = "".join(pdb_content_list)  # <- convert list to single string
+        pdb_content = "".join(pdb_content_list)  
         if pdb_content:
             tm_score = calculate_tm_score(pdb_content, original_pdb_path)
             
@@ -296,11 +295,10 @@ def complete_pipeline_display_only(pdb_file, config):
             'tm_score': tm_score
         })
         
-        # Small delay between API calls
         time.sleep(1)
     
     # Step 3: Rank and display results
-    print(f"\n🏆 STEP 3: FINAL RANKINGS")
+    print(f"\nSTEP 3: FINAL RANKINGS")
     
     # Sort by TM-score (descending)
     results_data.sort(key=lambda x: x['tm_score'], reverse=True)
@@ -337,7 +335,7 @@ def complete_pipeline_display_only(pdb_file, config):
     else:
         print("No successful TM-score calculations")
     
-    print(f"\n🎉 PIPELINE COMPLETE!")
+    print(f"\nPIPELINE COMPLETE!")
     
     return results_data
 
