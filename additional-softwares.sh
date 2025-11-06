@@ -19,4 +19,4 @@ echo "Installing Transformers and ESM..."
 pip install transformers
 pip install fair-esm
 
-echo "✅ All dependencies installed successfully!"
+echo "All dependencies installed successfully!"
