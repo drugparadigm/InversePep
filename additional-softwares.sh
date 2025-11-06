@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
 
+echo "Installing libgfortran..."
+conda install -y -c conda-forge libgfortran
+
 echo "Installing Flask..."
 pip install flask
 
