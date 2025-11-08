@@ -22,17 +22,11 @@ Installing Additional Softwares
 
 ```python
 conda install -y -c conda-forge libgfortran
-
 pip install torch==1.13.1 --index-url https://download.pytorch.org/whl/cu116
-
 pip install torch_cluster==1.6.1 -f https://data.pyg.org/whl/torch-1.13.1%2Bcu116.html
-
 pip install torch_scatter==2.1.1 -f https://data.pyg.org/whl/torch-1.13.1%2Bcu116.html
-
 pip install torch_geometric==2.3.1
-
 pip install transformers
-
 pip install fair-esm
 ```
 
