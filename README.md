@@ -36,7 +36,13 @@ Compile TMScore ( For Windows )
 g++ TMscore.cpp -O3 -o TMscore.exe
 ```
 
-Make the libgfortran available ( Needed only once for every fresh start , for Linux)
+Compile TMScore ( For Linux )
+
+```python
+g++ TMscore.cpp -O3 -std=c++17 -Wall -Wextra -o TMscore
+```
+
+Make the libgfortran available ( Needed only once for every fresh start , for Linux only )
 
 ```python
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
