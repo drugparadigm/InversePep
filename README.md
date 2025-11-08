@@ -30,11 +30,18 @@ pip install transformers
 pip install fair-esm
 ```
 
-Make the libgfortran available ( Needed only once for every fresh start )
+Compile TMScore ( For Window )
+
+```python
+g++ TMscore.cpp -O3 -o TMscore.exe
+```
+
+Make the libgfortran available ( Needed only once for every fresh start , for Linux)
 
 ```python
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
 ```
+
 ## Usage
 
 Run the following command to run the example for sequence generation:
