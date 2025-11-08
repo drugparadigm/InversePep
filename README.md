@@ -6,7 +6,7 @@ _Diffusion-Driven Structure-Based Inverse Folding for Functional Peptides._
 
 ## Installation
 
-Run the following command to create the conda environment ( Use Linux to avoid compatability issues )
+Run the following command to create the conda environment ( Use Linux to avoid compatibility issues )
 
 ```python
 conda env create -f environment.yaml
