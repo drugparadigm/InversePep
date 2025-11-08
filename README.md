@@ -32,7 +32,11 @@ Run the installation script
 ./additional_software.sh
 ```
 
+Make the libgfortran available ( Needed only once for every fresh start )
 
+```python
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+```
 ## Usage
 
 Run the following command to run the example for sequence generation:
