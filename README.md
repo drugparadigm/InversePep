@@ -30,7 +30,7 @@ pip install transformers
 pip install fair-esm
 ```
 
-Compile TMScore ( For Window )
+Compile TMScore ( For Windows )
 
 ```python
 g++ TMscore.cpp -O3 -o TMscore.exe
