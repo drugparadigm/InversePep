@@ -39,7 +39,7 @@ g++ TMscore.cpp -O3 -o TMscore
 Compile TMScore ( For Linux )
 
 ```python
-g++ TMscore.cpp -O3 -std=c++17 -Wall -Wextra -o TMscore
+g++ -static -O3 -ffast-math -lm -o TMscore TMscore.cpp
 ```
 
 Make the libgfortran available ( Needed only once for every fresh start , for Linux only )
