@@ -20,6 +20,8 @@ conda activate inversepep
 
 Installing Additional Softwares
 
+Make the script executable (only needed once, Linux/Mac)
+
 ```python
 chmod +x additional_software.sh
 ```
